@@ -1,0 +1,13 @@
+name: Runner check
+on:
+  workflow_dispatch:
+  push:
+permissions:
+  contents: read
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Echo ok
+        run: echo ok
