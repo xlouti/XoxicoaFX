@@ -1,0 +1,50 @@
+name: Build Xoxicoa FX for Mac
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'Source/**'
+      - 'CMakeLists.txt'
+      - '.github/workflows/build-mac.yml'
+permissions:
+  contents: read
+jobs:
+  mac-universal:
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure (universal arm64 + x86_64)
+        run: >-
+          cmake -S . -B build-mac -G Xcode
+          -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+      - name: Build AU, VST3 and Standalone
+        run: cmake --build build-mac --config Release --parallel 3
+      - name: Sign ad-hoc, verify architectures, package
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="build-mac/XoxicoaFX_artefacts/Release"
+          mkdir -p package
+          ditto "$ROOT/AU/Xoxicoa FX.component" "package/Xoxicoa FX.component"
+          ditto "$ROOT/VST3/Xoxicoa FX.vst3" "package/Xoxicoa FX.vst3"
+          ditto "$ROOT/Standalone/Xoxicoa FX.app" "package/Xoxicoa FX.app"
+          for b in "package/Xoxicoa FX.component" "package/Xoxicoa FX.vst3" "package/Xoxicoa FX.app"; do
+            codesign --force --deep --sign - "$b"
+            lipo -verify_arch arm64 x86_64 "$b/Contents/MacOS/Xoxicoa FX"
+          done
+          cp BUILD_ON_MAC.md SPEC.md package/
+          ditto -c -k --sequesterRsrc --keepParent package XoxicoaFX_mac_universal.zip
+      - name: Validate AU (informational)
+        continue-on-error: true
+        run: |
+          mkdir -p ~/Library/Audio/Plug-Ins/Components
+          ditto "package/Xoxicoa FX.component" ~/Library/Audio/Plug-Ins/Components/"Xoxicoa FX.component"
+          killall -9 AudioComponentRegistrar || true
+          auval -v aufx XxFx Xoxi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: XoxicoaFX_mac_universal
+          path: XoxicoaFX_mac_universal.zip
+          retention-days: 30
