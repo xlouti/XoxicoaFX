@@ -6,6 +6,9 @@ on:
       - 'Source/**'
       - 'CMakeLists.txt'
       - '.github/workflows/build-mac.yml'
+concurrency:
+  group: build-mac-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: read
 jobs:
