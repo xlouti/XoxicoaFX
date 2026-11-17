@@ -35,7 +35,8 @@ jobs:
           ditto "$ROOT/Standalone/Xoxicoa FX.app" "package/Xoxicoa FX.app"
           for b in "package/Xoxicoa FX.component" "package/Xoxicoa FX.vst3" "package/Xoxicoa FX.app"; do
             codesign --force --deep --sign - "$b"
-            lipo -verify_arch arm64 x86_64 "$b/Contents/MacOS/Xoxicoa FX"
+            lipo "$b/Contents/MacOS/Xoxicoa FX" -verify_arch arm64 x86_64
+            lipo -info "$b/Contents/MacOS/Xoxicoa FX"
           done
           cp BUILD_ON_MAC.md SPEC.md package/
           ditto -c -k --sequesterRsrc --keepParent package XoxicoaFX_mac_universal.zip
