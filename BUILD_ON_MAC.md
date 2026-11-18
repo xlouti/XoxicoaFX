@@ -24,17 +24,18 @@ CMake into Applications. Neither Homebrew nor a paid Apple account is required.
 cd "$HOME/Desktop/XoxicoaFX"
 export PATH="/Applications/CMake.app/Contents/bin:$PATH"
 cmake --version
+export MACOSX_DEPLOYMENT_TARGET=10.15
 cmake -S . -B build-mac -G "Unix Makefiles" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" \
-  -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+  -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
 cmake --build build-mac --config Release --parallel 2
 ```
 
 CMake fetches JUCE 8.0.4 from its official repository; internet required.
 Allow several minutes. If Apple's SDK is missing/outdated, install updates for
 Command Line Tools in Software Update, or install full Xcode from the App Store.
-This universal build supports Apple Silicon + Intel on macOS 11 or later.
+This universal build supports Intel on macOS 10.15 or later and Apple Silicon on macOS 11 or later.
 
 4. Quit FL Studio, then sign and install personal copies:
 

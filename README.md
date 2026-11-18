@@ -1,5 +1,5 @@
 # Xoxicoa FX
-Creative multi-effect (v1.2): Ghost Double, Plugg Haze, Rage Stutter,
+Creative multi-effect (v1.2.1): Ghost Double, Plugg Haze, Rage Stutter,
 808 Phone-Proof, Mosh Meter, Sidechain Pump, and a marked monitoring-only TikTok Check,
 plus a preset browser with 12 factory presets and user presets.
 

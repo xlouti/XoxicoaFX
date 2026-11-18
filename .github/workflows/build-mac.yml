@@ -15,13 +15,15 @@ jobs:
   mac-universal:
     runs-on: macos-15-intel
     timeout-minutes: 45
+    env:
+      MACOSX_DEPLOYMENT_TARGET: "10.15"
     steps:
       - uses: actions/checkout@v4
       - name: Configure (universal arm64 + x86_64)
         run: >-
           cmake -S . -B build-mac -G Xcode
           -DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"
-          -DCMAKE_OSX_DEPLOYMENT_TARGET=11.0
+          -DCMAKE_OSX_DEPLOYMENT_TARGET=10.15
       - name: Build AU, VST3 and Standalone
         run: cmake --build build-mac --config Release --parallel 3
       - name: Sign ad-hoc, verify architectures, package
@@ -37,6 +39,16 @@ jobs:
             codesign --force --deep --sign - "$b"
             lipo "$b/Contents/MacOS/Xoxicoa FX" -verify_arch arm64 x86_64
             lipo -info "$b/Contents/MacOS/Xoxicoa FX"
+            bin="$b/Contents/MacOS/Xoxicoa FX"
+            echo "---- minos x86_64 ----"
+            vtool -arch x86_64 -show-build "$bin"
+            echo "---- minos arm64 ----"
+            vtool -arch arm64 -show-build "$bin"
+            x86min=$(vtool -arch x86_64 -show-build "$bin" | awk '/minos/ { print $2; exit }')
+            case "$x86min" in
+              10.15|10.15.0) ;;
+              *) echo "x86_64 minos is '${x86min}', expected 10.15"; exit 1 ;;
+            esac
           done
           cp BUILD_ON_MAC.md SPEC.md package/
           ditto -c -k --sequesterRsrc --keepParent package XoxicoaFX_mac_universal.zip

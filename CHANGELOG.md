@@ -1,5 +1,10 @@
 # Changelog
 
+## v1.2.1 (2026-11-18)
+- macOS deployment target is 10.15, so the Intel slice runs on Catalina 10.15.6.
+  The build stays universal (arm64 + x86_64) on the macos-15-intel runner.
+  CMake project version is 1.2.1. No DSP changes.
+
 ## v1.2 (2026-11-17)
 ### New module 06: Sidechain Pump
 - Tempo-synced ducking at 1/4, 1/8 or 1/2 notes, locked to the host's song position, or
