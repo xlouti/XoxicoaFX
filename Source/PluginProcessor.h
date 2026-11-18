@@ -7,6 +7,8 @@
 #include "dsp/PhoneProof.h"
 #include "dsp/MoshMeter.h"
 #include "dsp/TikTokCheck.h"
+#include "dsp/SidechainPump.h"
+#include "PresetManager.h"
 
 class XoxicoaFXAudioProcessor : public juce::AudioProcessor
 {
@@ -40,13 +42,14 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     juce::AudioProcessorValueTreeState apvts;
+    PresetManager presets { apvts };
 
     // Read by the editor's timer (GUI thread). Written once per block.
     struct Meters
     {
         std::atomic<float> peakL { 0 }, peakR { 0 }, rmsL { 0 }, rmsR { 0 }, limiterDb { 0 };
-        std::atomic<float> hz808 { 0 }, hazeMidi { -1 }, hazeBias { 0 }, kick { 0 }, bpm { 0 };
-        std::atomic<int>   barInCycle { 0 };
+        std::atomic<float> hz808 { 0 }, hazeMidi { -1 }, hazeBias { 0 }, kick { 0 }, bpm { 0 }, pumpPhase { 1 }, pumpGain { 1 };
+        std::atomic<int>   barInCycle { 0 }, cycleLen { 4 }, stPattern { 0 }, stStep { -1 };
         std::atomic<bool>  fill { false }, previewLive { false }, offline { false }, playing { false };
     } meters;
 
@@ -62,6 +65,7 @@ private:
     xfx::PhoneProof phone;
     xfx::MoshMeter mosh;
     xfx::TikTokCheck tiktok;
+    xfx::SidechainPump pump;
     xfx::SafetyLimiter limiter;
     xfx::Smoother outGainS;
 
@@ -73,9 +77,10 @@ private:
     {
         std::atomic<float> *ghostOn, *ghostPitch, *ghostFormant, *ghostDelay, *ghostWidth, *ghostMix;
         std::atomic<float> *hazeOn, *hazeDepth, *hazeRate, *hazeKey, *hazeScale, *hazeTone, *hazeTape;
-        std::atomic<float> *stOn, *stBars, *stRandom, *stMix, *stSeed;
+        std::atomic<float> *stOn, *stMode, *stPattern, *stRandom, *stMix;
         std::atomic<float> *phOn, *phAmount, *phBright, *phTone;
         std::atomic<float> *moOn, *moMacro, *moFollow;
+        std::atomic<float> *puOn, *puMode, *puDepth, *puRelease, *puShape;
         std::atomic<float> *prOn, *prCrunch, *outGain;
     } p {};
 

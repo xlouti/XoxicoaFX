@@ -230,15 +230,15 @@ int main (int argc, char** argv)
     writeWav (off, outDir.getChildFile ("01_all_off.wav"));
 
     const double beatS = 60.0 / kBpm * kFs;
-    auto inFill = [&] (int i) { // input-timeline sample i is in the last beat of bar 4 or 8
+    auto inFill = [&] (int i) { // input-timeline sample i is in the back half of bar 4 or 8
         const double q = (i - latency) / beatS; const double inCycle = std::fmod (q, 16.0);
-        return q >= 0 && inCycle >= 15.0; };
+        return q >= 0 && inCycle >= 14.0; };
 
     struct Case { const char* file; const char* label; std::vector<std::pair<const char*, float>> set; };
     const std::vector<Case> cases = {
         { "02_ghost_double.wav", "Ghost Double (-12 st, mix 60%)", { { "Ghost Double On", 1 }, { "Ghost Mix", 0.6f } } },
         { "03_plugg_haze.wav",   "Plugg Haze (key F minor, depth 70%)", { { "Plugg Haze On", 1 }, { "Haze Depth", 0.7f }, { "Haze Key", 5.0f / 11.0f } } },
-        { "04_rage_stutter.wav", "Rage Stutter (every 4 bars, mix 100%)", { { "Rage Stutter On", 1 }, { "Stutter Mix", 1.0f } } },
+        { "04_rage_stutter.wav", "Rage Stutter (default: Rage Roll Buildup, last bar of 4)", { { "Rage Stutter On", 1 }, { "Stutter Mix", 1.0f } } },
         { "05_808_phoneproof.wav", "808 Phone-Proof (amount 70%)", { { "808 Phone-Proof On", 1 }, { "808 Amount", 0.7f } } },
         { "06_mosh_meter.wav",   "Mosh Meter (mosh 80%, kick-follow 60%)", { { "Mosh Meter On", 1 }, { "Mosh", 0.8f }, { "Mosh Kick-Follow", 0.6f } } },
         { "07_tiktok_preview.wav", "TikTok Check PREVIEW (realtime)", { { "MONITOR PREVIEW (not for export)", 1 }, { "Preview Crunch", 0.4f } } },
@@ -278,7 +278,7 @@ int main (int argc, char** argv)
         }
         const double inDb = db (std::sqrt (inS / std::max (1, inN))), outDb = db (std::sqrt (outS / std::max (1, outN)));
         std::printf ("    stutter change inside fill beats %.1f dBFS, outside %.1f dBFS\n", inDb, outDb);
-        check (inDb > -40.0 && outDb < -60.0, "stutter only acts in the last beat of every 4th bar");
+        check (inDb > -40.0 && outDb < -60.0, "stutter only acts in the back half of every 4th bar (Rage Roll Buildup)");
     }
     {
         const auto& pp = renders["05_808_phoneproof.wav"];

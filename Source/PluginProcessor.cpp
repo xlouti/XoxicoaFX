@@ -10,9 +10,10 @@ XoxicoaFXAudioProcessor::XoxicoaFXAudioProcessor()
 {
     p = { raw ("ghost_on"), raw ("ghost_pitch"), raw ("ghost_formant"), raw ("ghost_delay"), raw ("ghost_width"), raw ("ghost_mix"),
           raw ("haze_on"), raw ("haze_depth"), raw ("haze_rate"), raw ("haze_key"), raw ("haze_scale"), raw ("haze_tone"), raw ("haze_tape"),
-          raw ("stutter_on"), raw ("stutter_bars"), raw ("stutter_random"), raw ("stutter_mix"), raw ("stutter_seed"),
+          raw ("stutter_on"), raw ("stutter_mode"), raw ("stutter_pattern"), raw ("stutter_random"), raw ("stutter_mix"),
           raw ("phone_on"), raw ("phone_amount"), raw ("phone_bright"), raw ("phone_tone"),
           raw ("mosh_on"), raw ("mosh_macro"), raw ("mosh_follow"),
+          raw ("pump_on"), raw ("pump_mode"), raw ("pump_depth"), raw ("pump_release"), raw ("pump_shape"),
           raw ("preview_on"), raw ("preview_crunch"), raw ("output_gain") };
 }
 
@@ -44,7 +45,7 @@ void XoxicoaFXAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     mosh.prepare (fs, chunkSize);
     tiktok.prepare (fs);
     limiter.prepare (fs);
-    outGainS.prepare (fs, 30.0);
+    outGainS.prepare (fs, 20.0);
 
     // Snap every smoother to the current knob positions so a fresh start
     // (or an export) never glides in from stale values.
@@ -52,6 +53,10 @@ void XoxicoaFXAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
     resetModules();
 
     latency = haze.getLatencySamples() + mosh.getLatencySamples();
+    pump.prepare (fs, latency);
+    pump.setSidechainDelay (latency);
+    applyParams (isNonRealtime());
+    pump.reset();
     setLatencySamples (latency);
     bypassDelay.assign ((size_t) (latency + 1) * 2, 0.0f);
     bypassPos = 0;
@@ -59,7 +64,7 @@ void XoxicoaFXAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBl
 
 void XoxicoaFXAudioProcessor::resetModules()
 {
-    ghost.reset(); haze.reset(); stutter.reset(); phone.reset(); mosh.reset(); tiktok.reset(); limiter.reset();
+    ghost.reset(); haze.reset(); stutter.reset(); phone.reset(); mosh.reset(); pump.reset(); tiktok.reset(); limiter.reset();
     outGainS.snap (outGainS.target);
     std::fill (bypassDelay.begin(), bypassDelay.end(), 0.0f);
     bypassPos = 0;
@@ -79,10 +84,12 @@ bool XoxicoaFXAudioProcessor::applyParams (bool offline)
     haze.setParams (p.hazeOn->load() > 0.5f, p.hazeDepth->load(), p.hazeRate->load(),
                     (int) std::lround (p.hazeKey->load()), (int) std::lround (p.hazeScale->load()),
                     p.hazeTone->load(), p.hazeTape->load());
-    stutter.setParams (p.stOn->load() > 0.5f, p.stBars->load() > 0.5f ? 8 : 4, p.stRandom->load(),
-                       p.stMix->load(), (int) std::lround (p.stSeed->load()));
+    stutter.setParams (p.stOn->load() > 0.5f, (int) std::lround (p.stMode->load()), (int) std::lround (p.stPattern->load()),
+                       p.stRandom->load(), p.stMix->load());
     phone.setParams (p.phOn->load() > 0.5f, p.phAmount->load(), p.phBright->load(), p.phTone->load());
     mosh.setParams (p.moOn->load() > 0.5f, p.moMacro->load(), p.moFollow->load());
+    pump.setParams (p.puOn->load() > 0.5f, (int) std::lround (p.puMode->load()), p.puDepth->load(),
+                    p.puRelease->load(), p.puShape->load());
     tiktok.setParams (previewOn, p.prCrunch->load());
     if (offline) tiktok.forceOff();   // no fade-out tail of the preview in an export either
     outGainS.setTarget (xfx::dbToGain (p.outGain->load()));
@@ -141,6 +148,7 @@ void XoxicoaFXAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
         // song position that audio belongs to; fills then line up after host PDC.
         const double qps = bpm / 60.0 / fs;
         stutter.setTransport (valid, playing, bpm, ppq + (double) (start - haze.getLatencySamples()) * qps, num, den);
+        pump.setTransport (valid, playing, bpm, ppq + (double) (start - latency) * qps);
         processChunk (L, R, scBase[0] ? scBase[0] + start : nullptr, scBase[1] ? scBase[1] + start : nullptr, n);
 
         if (nOut == 1)
@@ -168,8 +176,10 @@ void XoxicoaFXAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer, ju
     m.hz808 = phone.getDetectedHz();
     m.hazeMidi = haze.getDetectedMidi(); m.hazeBias = haze.getBiasSemis();
     m.kick = mosh.getKickEnvelope();
+    m.pumpPhase = pump.getPhase(); m.pumpGain = pump.getGain();
     m.bpm = (float) bpm; m.playing = playing && valid;
-    m.barInCycle = stutter.getBarInCycle(); m.fill = stutter.isFillActive();
+    m.barInCycle = stutter.getBarInCycle(); m.cycleLen = stutter.getCycleLength();
+    m.stPattern = stutter.getActivePattern(); m.stStep = stutter.getCurrentStep(); m.fill = stutter.isFillActive();
     m.previewLive = previewOn; m.offline = offline;
 }
 
@@ -180,6 +190,7 @@ void XoxicoaFXAudioProcessor::processChunk (float* L, float* R, const float* scL
     stutter.process (L, R, n);    // 3. Rage Stutter
     phone.process (L, R, n);      // 4. 808 Phone-Proof
     mosh.process (L, R, scL, scR, n); // 5. Mosh Meter
+    pump.process (L, R, scL, scR, n); // 6. Sidechain Pump
     for (int i = 0; i < n; ++i) { const float g = outGainS.next(); L[i] *= g; R[i] *= g; }
     tiktok.process (L, R, n);     // 6. TikTok Check (monitor preview only)
     limiter.process (L, R, n);    // safety ceiling -0.3 dBFS
@@ -208,6 +219,7 @@ void XoxicoaFXAudioProcessor::processBlockBypassed (juce::AudioBuffer<float>& bu
 
 void XoxicoaFXAudioProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
+    apvts.state.setProperty ("presetName", presets.getCurrentName(), nullptr);
     auto state = apvts.copyState();
     if (auto xml = state.createXml()) copyXmlToBinary (*xml, destData);
 }
@@ -219,6 +231,7 @@ void XoxicoaFXAudioProcessor::setStateInformation (const void* data, int sizeInB
             apvts.replaceState (juce::ValueTree::fromXml (*xml));
     // TikTok preview always comes back OFF after loading a project or preset.
     if (auto* pr = apvts.getParameter ("preview_on")) pr->setValueNotifyingHost (0.0f);
+    presets.setCurrentName (apvts.state.getProperty ("presetName", "Init").toString());
 }
 
 juce::AudioProcessorEditor* XoxicoaFXAudioProcessor::createEditor() { return new XoxicoaFXAudioProcessorEditor (*this); }

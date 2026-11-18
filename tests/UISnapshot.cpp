@@ -10,7 +10,8 @@ int main (int argc, char** argv)
     const float scale = argc > 2 ? (float) std::atof (argv[2]) : 2.0f;
 
     XoxicoaFXAudioProcessor proc;
-    for (auto id : { "ghost_on", "phone_on", "mosh_on", "stutter_on" })
+    proc.presets.load (1);   // "Glokk Mosh" so the header shows a preset
+    for (auto id : { "ghost_on", "phone_on", "mosh_on", "stutter_on", "pump_on" })
         proc.apvts.getParameter (id)->setValueNotifyingHost (1.0f);
     proc.apvts.getParameter ("mosh_macro")->setValueNotifyingHost (0.55f);
 

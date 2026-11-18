@@ -19,11 +19,12 @@ public:
     void prepare (double sampleRate)
     {
         fs = sampleRate;
-        center = (int) std::lround (0.010 * fs);   // 10 ms -> constant, reported latency
+        center = (int) std::lround (0.015 * fs);   // 15 ms -> constant, reported latency
         dlL.prepare (center * 2 + 16);
         dlR.prepare (center * 2 + 16);
         tracker.prepare (fs, 60.0f, 1200.0f, 12000.0f, 1800.0f);
-        wetS.prepare (fs, 30.0); depthS.prepare (fs, 50.0); rateS.prepare (fs, 50.0); tapeS.prepare (fs, 50.0);
+        wetS.prepare (fs, 20.0); depthS.prepare (fs, 25.0); rateS.prepare (fs, 25.0); tapeS.prepare (fs, 25.0);
+        toneS.prepare (fs, 25.0);
         skewCoef = msToCoef (fs, 90.0);
         dcL.set (Biquad::Type::highpass, fs, 15.0, 0.707);
         dcR = dcL;
@@ -38,8 +39,9 @@ public:
         dlL.reset(); dlR.reset(); tracker.reset();
         lpL.reset(); lpR.reset(); dcL.reset(); dcR.reset();
         phase = phase2 = fphase = 0.0;
-        skew = skewTarget = 0.0f; counter = 0;
+        skew = skewTarget = 0.0f; offKey = offKeyTarget = 0.0f; counter = 0;
         wetS.snap (wetS.target); depthS.snap (depthS.target); rateS.snap (rateS.target); tapeS.snap (tapeS.target);
+        toneS.snap (toneS.target); lastTone = -1.0f; updateTone (toneS.value);
     }
 
     void setParams (bool on, float depth01, float rateHz, int key, int scale, float tone01, float tape01) noexcept
@@ -50,13 +52,15 @@ public:
         tapeS.setTarget (tape01);
         keyRoot = ((key % 12) + 12) % 12;
         scaleIdx = std::min (std::max (scale, 0), numScales - 1);
-        if (tone01 != lastTone)
-        {
-            lastTone = tone01;
-            const double f = 2000.0 * std::pow (9.0, (double) tone01); // 2 kHz .. 18 kHz
-            lpL.set (Biquad::Type::lowpass, fs, f, 0.6);
-            lpR.set (Biquad::Type::lowpass, fs, f, 0.6);
-        }
+        toneS.setTarget (clampf (tone01, 0.0f, 1.0f));
+    }
+
+    void updateTone (float t) noexcept
+    {
+        lastTone = t;
+        const double f = 600.0 * std::pow (30.0, (double) t);   // 600 Hz .. 18 kHz
+        lpL.set (Biquad::Type::lowpass, fs, f, 0.6);
+        lpR.set (Biquad::Type::lowpass, fs, f, 0.6);
     }
 
     /** Detected note (MIDI, fractional) and bias toward key in semitones, for the UI. */
@@ -69,13 +73,16 @@ public:
         for (int i = 0; i < n; ++i)
         {
             tracker.push (0.5f * (L[i] + R[i]));
+            const float tn = toneS.next();
             if (++counter >= 64) { counter = 0; updateBias(); }
+            if ((counter & 31) == 0 && std::abs (tn - lastTone) > 0.002f) updateTone (tn);
 
             const float en   = wetS.next();
             const float dep  = depthS.next() * en;
             const float rate = rateS.next();
             const float tape = tapeS.next() * en;
             skew = skewTarget + skewCoef * (skew - skewTarget);
+            offKey = offKeyTarget + skewCoef * (offKey - offKeyTarget);
 
             phase += rate / fs;            phase -= std::floor (phase);
             phase2 += 0.37 * rate / fs;    phase2 -= std::floor (phase2);
@@ -86,9 +93,11 @@ public:
             const float g = p < duty ? std::cos (kPi * p / duty)
                                      : std::cos (kPi * (1.0f + (p - duty) / (1.0f - duty)));
 
-            // Wow: up to ~30 cents; flutter: ~3 cents at 7.3 Hz.
-            const float flA = (dep * 3.0f * ln2over1200) / (kTwoPi * 7.3f) * (float) fs;
-            float A = (dep * 30.0f * ln2over1200) / (kTwoPi * rate) * (float) fs;
+            // Wow: up to ~45 cents, x2.2 on notes that sit off the chosen key/scale;
+            // flutter: ~5 cents at 7.3 Hz.
+            const float keyDep = dep * (1.0f + 1.2f * offKey);
+            const float flA = (dep * 5.0f * ln2over1200) / (kTwoPi * 7.3f) * (float) fs;
+            float A = (keyDep * 45.0f * ln2over1200) / (kTwoPi * rate) * (float) fs;
             A = std::min (A, ((float) center - 4.0f - flA) / 1.3f);
             const float D = (float) center
                             + A * g
@@ -100,7 +109,7 @@ public:
 
             if (tape > 1.0e-4f)
             {
-                const float k = 1.0f + 4.0f * tape, b = 0.12f * tape;
+                const float k = 1.0f + 9.0f * tape, b = 0.15f * tape;
                 const float tb = std::tanh (b), norm = 1.0f / (k * (1.0f - tb * tb));
                 const float sL = (std::tanh (k * yL + b) - tb) * norm;
                 const float sR = (std::tanh (k * yR + b) - tb) * norm;
@@ -127,7 +136,7 @@ private:
             { 1,1,0,1,0,1,0,1,1,0,1,0 }, // Phrygian
             { 1,0,1,1,0,1,0,1,0,1,1,0 }, // Dorian
         };
-        if (! tracker.isVoiced()) { skewTarget = 0.0f; biasSemis = 0.0f; detectedMidi = -1.0f; return; }
+        if (! tracker.isVoiced()) { skewTarget = 0.0f; offKeyTarget = 0.0f; biasSemis = 0.0f; detectedMidi = -1.0f; return; }
 
         const float m = midiFromHz (tracker.getHz());
         const float rel = m - (float) keyRoot;
@@ -142,6 +151,7 @@ private:
         biasSemis = best - rel;
         detectedMidi = m;
         skewTarget = clampf (biasSemis * 1.6f, -1.0f, 1.0f);
+        offKeyTarget = clampf (std::abs (biasSemis) * 2.0f, 0.0f, 1.0f);   // 0 in key .. 1 a half step+ off
     }
 
     double fs = 48000.0;
@@ -149,8 +159,9 @@ private:
     DelayLine dlL, dlR;
     PitchTracker tracker;
     Biquad lpL, lpR, dcL, dcR;
-    Smoother wetS, depthS, rateS, tapeS;
+    Smoother wetS, depthS, rateS, tapeS, toneS;
     double phase = 0, phase2 = 0, fphase = 0;
+    float offKey = 0, offKeyTarget = 0;
     float skew = 0, skewTarget = 0, skewCoef = 0.99f, lastTone = -1.0f;
     float detectedMidi = -1.0f, biasSemis = 0.0f;
     int keyRoot = 0, scaleIdx = 0, counter = 0;

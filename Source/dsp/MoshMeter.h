@@ -25,8 +25,8 @@ public:
         low.set (Biquad::Type::lowpass, fs, 140.0, 0.707);
         env.prepare (fs, 2.0, 110.0);
         mixS.prepare (fs, 25.0);
-        macroS.prepare (fs * 4.0, 40.0);
-        kickS.prepare (fs, 40.0);
+        macroS.prepare (fs * 4.0, 25.0);
+        kickS.prepare (fs, 25.0);
         dry.resize ((size_t) maxBlockSize * 2);
         follow.resize ((size_t) maxBlockSize);
         reset();

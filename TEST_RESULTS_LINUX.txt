@@ -1,62 +1,66 @@
-Loaded: Xoxicoa FX by Xoxicoa, 29 params
-Reported latency: 486 samples (10.12 ms)
+Xoxicoa FX v1.2 - Linux test results (2026-11-17 20:37 EST, JUCE 8.0.4, gcc, Release)
+Built targets: VST3, Standalone, XoxicoaFXRenderTest, XoxicoaFXAudit, XoxicoaFXUISnapshot
+
+############ 1. VST3 end-to-end render test (tests/RenderTest.cpp, loads the built .vst3) ############
+Loaded: Xoxicoa FX by Xoxicoa, 34 params
+Reported latency: 726 samples (15.12 ms)
 
 [all_off] transparency error vs latency-aligned input: -240.0 dBFS
     [PASS] all modules off is transparent (< -60 dB residual)
 
 [Ghost Double (-12 st, mix 60%)]
-    peak -2.37 dBFS | rms -15.1 dBFS | change vs off -30.1 dBFS | 52x realtime
+    peak -2.31 dBFS | rms -15.0 dBFS | change vs off -28.3 dBFS | 46x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
-    [PASS] never above 0 dBFS (peak -2.37 dBFS)
+    [PASS] never above 0 dBFS (peak -2.31 dBFS)
     [PASS] module audibly changes the signal
 
 [Plugg Haze (key F minor, depth 70%)]
-    peak -6.11 dBFS | rms -16.0 dBFS | change vs off -18.3 dBFS | 45x realtime
+    peak -7.86 dBFS | rms -16.9 dBFS | change vs off -15.2 dBFS | 46x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
-    [PASS] never above 0 dBFS (peak -6.11 dBFS)
+    [PASS] never above 0 dBFS (peak -7.86 dBFS)
     [PASS] module audibly changes the signal
 
-[Rage Stutter (every 4 bars, mix 100%)]
-    peak -3.00 dBFS | rms -15.0 dBFS | change vs off -24.8 dBFS | 46x realtime
+[Rage Stutter (default: Rage Roll Buildup, last bar of 4)]
+    peak -3.00 dBFS | rms -15.6 dBFS | change vs off -24.8 dBFS | 48x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
     [PASS] never above 0 dBFS (peak -3.00 dBFS)
     [PASS] module audibly changes the signal
 
 [808 Phone-Proof (amount 70%)]
-    peak -0.30 dBFS | rms -14.4 dBFS | change vs off -21.7 dBFS | 49x realtime
+    peak -0.30 dBFS | rms -14.4 dBFS | change vs off -21.5 dBFS | 49x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
     [PASS] never above 0 dBFS (peak -0.30 dBFS)
     [PASS] module audibly changes the signal
 
 [Mosh Meter (mosh 80%, kick-follow 60%)]
-    peak -5.49 dBFS | rms -11.0 dBFS | change vs off -15.8 dBFS | 53x realtime
+    peak -5.49 dBFS | rms -11.0 dBFS | change vs off -15.8 dBFS | 49x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
     [PASS] never above 0 dBFS (peak -5.49 dBFS)
     [PASS] module audibly changes the signal
 
 [TikTok Check PREVIEW (realtime)]
-    peak -1.00 dBFS | rms -15.1 dBFS | change vs off -12.2 dBFS | 48x realtime
+    peak -1.00 dBFS | rms -15.1 dBFS | change vs off -12.2 dBFS | 47x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
     [PASS] never above 0 dBFS (peak -1.00 dBFS)
     [PASS] module audibly changes the signal
 
 [ALL modules on]
-    peak -5.75 dBFS | rms -10.8 dBFS | change vs off -14.5 dBFS | 49x realtime
+    peak -5.40 dBFS | rms -11.0 dBFS | change vs off -13.4 dBFS | 48x realtime
     [PASS] output finite (no NaN/Inf)
     [PASS] output not silent
-    [PASS] never above 0 dBFS (peak -5.75 dBFS)
+    [PASS] never above 0 dBFS (peak -5.40 dBFS)
     [PASS] module audibly changes the signal
 
 [module checks]
-    stutter change inside fill beats -9.7 dBFS, outside -240.0 dBFS
-    [PASS] stutter only acts in the last beat of every 4th bar
-    180-1500 Hz band: -32.6 -> -25.1 dB | 25-70 Hz sub: -18.3 -> -18.4 dB
+    stutter change inside fill beats -12.7 dBFS, outside -240.0 dBFS
+    [PASS] stutter only acts in the back half of every 4th bar (Rage Roll Buildup)
+    180-1500 Hz band: -32.6 -> -24.5 dB | 25-70 Hz sub: -18.3 -> -18.4 dB
     [PASS] 808 harmonics added in the phone range (> +2 dB)
     [PASS] sub left intact (< 0.5 dB change)
     (preview fades in over ~15 ms when switched on; mono checked over the whole render)
@@ -72,7 +76,207 @@ Reported latency: 486 samples (10.12 ms)
     [PASS] safety limiter holds -0.3 dBFS ceiling on hot input
     state restore: Mosh=0.900 (expect 0.900), Preview=0 (expect 0)
     [PASS] state saves/restores; preview forced off on load
-    mono layout accepted: yes, peak -7.59 dBFS
+    mono layout accepted: yes, peak -8.41 dBFS
     [PASS] mono in/out works
 
-ALL TESTS PASSED: 0 failure(s). Renders in /workspace/plugin/out/test_renders
+ALL TESTS PASSED: 0 failure(s). Renders in /workspace/plugin/out/fx_v1.2_tests
+
+############ 2. Audit (tests/Audit.cpp): stutter, per-knob min/mid/max, pump, presets ############
+
+=== RAGE STUTTER (module only, 160 BPM, 8 bars, mode Every Bar, mix 100%) ===
+input: max |d1| 0.1195, max |d2| 0.1332, rms -15.2 dBFS
+
+[ 1 Half-Time]
+    diff vs input 3.2 dB (rel. to input rms) | peak -2.95 dBFS | max|d1| 0.0800 (x0.67 of input) | max|d2| 0.0821 (x0.62)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[ 4 Beat Flip (2-1-4-3)]
+    diff vs input 3.4 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1332 (x1.00)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[ 7 Reverse Last Beat]
+    diff vs input -3.9 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1332 (x1.00)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[14 Rage Roll Buildup]
+    diff vs input -2.6 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1332 (x1.00)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[20 Gated Chop 1/16]
+    diff vs input -4.1 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1226 (x0.92)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[23 Tape Stop End]
+    diff vs input -5.6 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1332 (x1.00)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[11 1/8 Retrigger Roll]
+    diff vs input -2.8 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1195 (x1.00 of input) | max|d2| 0.1332 (x1.00)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[17 Triplet Skip (3-3-3)]
+    diff vs input 1.9 dB (rel. to input rms) | peak -3.00 dBFS | max|d1| 0.1155 (x0.97 of input) | max|d2| 0.1285 (x0.96)
+    [PASS] finite (no NaN/Inf)
+    [PASS] audibly rearranges the groove (difference > -12 dB)
+    [PASS] no step discontinuities beyond the dry loop's own (|d1| <= 1.25x input)
+    [PASS] no clicks beyond the dry loop's own (|d2| <= 1.25x input)
+
+[all 26 patterns, every bar]
+     0 Beat 1 Repeat            diff    3.2 dB  d1 x0.97  d2 x0.99  finite
+     1 Half-Time                diff    3.2 dB  d1 x0.67  d2 x0.62  finite
+     2 Half-Time Back Half      diff    0.0 dB  d1 x1.00  d2 x1.00  finite
+     3 Skip 2 & 4               diff    1.3 dB  d1 x0.97  d2 x0.99  finite
+     4 Beat Flip (2-1-4-3)      diff    3.4 dB  d1 x1.00  d2 x1.00  finite
+     5 Beat Shuffle (1-3-2-4)   diff   -0.7 dB  d1 x1.00  d2 x1.00  finite
+     6 Half-Bar Repeat          diff   -0.3 dB  d1 x1.00  d2 x1.00  finite
+     7 Reverse Last Beat        diff   -3.9 dB  d1 x1.00  d2 x1.00  finite
+     8 Reverse 2 & 4            diff   -2.2 dB  d1 x1.00  d2 x1.00  finite
+     9 Reverse Back Half        diff   -0.9 dB  d1 x1.00  d2 x1.00  finite
+    10 Reverse Swell            diff    0.3 dB  d1 x1.00  d2 x1.00  finite
+    11 1/8 Retrigger Roll       diff   -2.8 dB  d1 x1.00  d2 x1.00  finite
+    12 1/16 Roll Last Beat      diff   -5.5 dB  d1 x1.00  d2 x1.00  finite
+    13 1/32 Snare Roll          diff   -4.9 dB  d1 x1.00  d2 x1.00  finite
+    14 Rage Roll Buildup        diff   -2.6 dB  d1 x1.00  d2 x1.00  finite
+    15 Machine Gun 1/64         diff   -6.3 dB  d1 x1.00  d2 x1.00  finite
+    16 Downbeat Stutter         diff   -0.0 dB  d1 x1.00  d2 x1.00  finite
+    17 Triplet Skip (3-3-3)     diff    1.9 dB  d1 x0.97  d2 x0.96  finite
+    18 8th Repeat 2 & 4         diff    0.3 dB  d1 x0.97  d2 x0.99  finite
+    19 Plugg Skip               diff   -2.2 dB  d1 x1.00  d2 x1.00  finite
+    20 Gated Chop 1/16          diff   -4.1 dB  d1 x1.00  d2 x0.92  finite
+    21 Stop-Start               diff   -9.6 dB  d1 x1.00  d2 x1.00  finite
+    22 Drop Silence             diff   -7.3 dB  d1 x1.00  d2 x1.00  finite
+    23 Tape Stop End            diff   -5.6 dB  d1 x1.00  d2 x1.00  finite
+    24 Tape Stop Half           diff   -0.0 dB  d1 x1.00  d2 x1.00  finite
+    25 Half-Time Into Stop      diff    3.2 dB  d1 x0.86  d2 x0.78  finite
+    most similar pair of patterns differs by -11.5 dB
+    [PASS] every pattern is finite and changes the loop
+    [PASS] every pattern sounds different from every other (pairwise diff > -20 dB)
+    [PASS] click check across all patterns (worst d1 x1.00, d2 x1.00)
+
+[sine click test, all patterns, 2 modes]
+    sine's own max step 0.0144, worst output step 0.0169 (Half-Time)
+    [PASS] no clicks: worst sample-to-sample step < 0.03 on a 0.5-amplitude sine
+
+[modes / transport]
+    [PASS] transport stopped -> bit-exact dry
+    Fill of 4: change in bars 1-3 -240.0 dBFS, bar 4 -12.0 dBFS
+    [PASS] Fill mode only touches the last bar of 4
+    Last Beat: change before beat 4 of bar 4 -240.0 dBFS, in it -15.4 dBFS
+    [PASS] Last Beat mode only touches the last beat of every 4th bar
+    [PASS] randomness is deterministic (same render twice)
+    [PASS] randomness 100% swaps in other patterns
+
+=== PARAMETER AUDIT (min / mid / max, only that module on) ===
+levelD = output RMS change vs min setting; diff = RMS of (render - min render) relative to min render;
+band = largest change in any octave band (31 Hz-16 kHz), dB.
+FLAG (too subtle) when |level| < 1 dB AND diff < -20 dB AND band < 1.5 dB.
+
+  ghost_on     ON vs OFF at defaults: diff  -16.6 dB, level  +0.1 dB, peak -2.83 dBFS 
+  haze_on      ON vs OFF at defaults: diff   -3.7 dB, level  -1.7 dB, peak -7.85 dBFS 
+  stutter_on   ON vs OFF at defaults: diff   -9.6 dB, level  -0.3 dB, peak -3.00 dBFS 
+  phone_on     ON vs OFF at defaults: diff  -13.8 dB, level  +0.2 dB, peak -2.00 dBFS 
+  mosh_on      ON vs OFF at defaults: diff   -8.0 dB, level  +2.6 dB, peak -4.71 dBFS 
+  pump_on      ON vs OFF at defaults: diff  -13.1 dB, level  -1.0 dB, peak -4.53 dBFS 
+  preview_on   ON vs OFF at defaults: diff    3.0 dB, level  +0.1 dB, peak -1.00 dBFS 
+
+  module   param              lvl mid   lvl max  diff mid  diff max  band mid  band max  verdict
+  Ghost    ghost_pitch           +0.2      +0.9     -12.7      -6.2       0.7       3.0  ok
+  Ghost    ghost_formant         -0.6      -0.6     -11.4      -9.0       3.4       3.8  ok
+  Ghost    ghost_delay           -0.0      +0.0     -14.8     -14.6       0.3       0.3  ok
+  Ghost    ghost_width           +0.0      +0.1     -17.9     -14.3       0.2       0.1  ok
+  Ghost    ghost_mix             +0.1      +0.5     -14.6      -8.6       1.0       3.2  ok
+  Haze     haze_depth            -0.0      -0.0      -1.5       2.3       0.8       0.8  ok
+  Haze     haze_rate             +0.0      -0.0       3.9       3.9       0.3       0.3  ok
+  Haze     haze_key              +0.0      +0.0      -7.9      -7.8       0.1       0.1  ok
+             (choices: mid = 'F#', max = most different = 'E')
+  Haze     haze_scale            +0.0      +0.0    -240.0      -7.8       0.0       0.1  ok
+             (choices: mid = 'Minor Pent.', max = most different = 'Major')
+  Haze     haze_tone             +0.1      +0.1     -14.1     -12.5      18.5      20.0  ok
+  Haze     haze_tape             -3.1      -4.9      -7.6      -4.4       4.2       6.5  ok
+  Stutter  stutter_mode          +1.6      +1.8      -1.4      -0.9       2.3       2.6  ok
+             (choices: mid = 'Fill: Last Bar of 4', max = most different = 'Fill: Last Bar of 8')
+  Stutter  stutter_pattern       -0.8      -0.6      -3.7      -2.3       1.0       3.1  ok
+             (choices: mid = '1/32 Snare Roll', max = most different = 'Half-Time')
+  Stutter  stutter_random        +0.0      +0.3    -240.0      -5.9       0.0       1.9  ok
+  Stutter  stutter_mix           -0.3      -0.3     -15.6      -9.6       0.6       0.7  ok
+  Phone    phone_amount          +0.3      +2.2     -12.0      -0.9       9.4      19.8  ok
+  Phone    phone_bright          +0.0      +0.2     -17.9     -11.9       3.8       7.7  ok
+  Phone    phone_tone            +0.1      +0.1     -15.1     -13.6       2.2       2.2  ok
+  Mosh     mosh_macro            +4.4      +3.0      -2.1      -1.7       9.0      12.0  ok
+  Mosh     mosh_follow           +0.7      +1.4     -20.6     -14.6       1.2       2.4  ok
+  Pump     pump_mode             -0.1      +0.1     -14.2     -12.1       0.9       1.4  ok
+             (choices: mid = '1/2', max = most different = 'Kick Trigger')
+  Pump     pump_depth            -0.8      -1.5     -14.7      -8.7       1.5       2.4  ok
+  Pump     pump_release          -0.8      -1.5     -15.2     -12.2       1.1       1.9  ok
+  Pump     pump_shape            +0.8      +1.1     -15.3     -12.6       1.0       1.3  ok
+  Preview  preview_crunch        +0.0      +0.1     -20.7      -8.7      11.4      19.4  ok
+  Output   output_gain          +15.0     +29.6      13.3      29.3      15.0      29.9  ok
+
+  flagged parameters: 0
+
+  all modules on, everything maxed, +6 dB out: peak -0.30 dBFS
+    [PASS] worst case stays finite and under the -0.3 dBFS ceiling
+    [PASS] offline render finite
+
+=== SIDECHAIN PUMP ===
+  1/4: level right after each beat vs before the next -11.1 dB, max step 0.0144 (sine's own 0.0144)
+    [PASS] synced duck lands on the grid (1/4)
+    [PASS] no clicks, finite
+  1/8: level right after each beat vs before the next -9.2 dB, max step 0.0144 (sine's own 0.0144)
+    [PASS] synced duck lands on the grid (1/8)
+    [PASS] no clicks, finite
+  1/2: level right after each beat vs before the next -12.3 dB, max step 0.0144 (sine's own 0.0144)
+    [PASS] synced duck lands on the grid (1/2)
+    [PASS] no clicks, finite
+  Kick Trigger: reduction after kicks -19.3 dBFS vs before kicks -133.6 dBFS
+    [PASS] kick mode ducks right after kicks
+    [PASS] finite
+
+=== PRESETS ===
+  user preset folder: /home/box/.config/Audio/Presets/Xoxicoa/Xoxicoa FX
+  factory presets (12): Init, Glokk Mosh, Plugg Wash, TikTok Ready, Rage Roll Fill, Half-Time Drop, Ghost Lead, 808 Phone Punch, Pump It, Kick Duck, Stutter Chop, Dark Tape
+    [PASS] at least 10 factory presets
+    Glokk Mosh       diff vs Init   -0.9 dB, peak  -6.06 dBFS 
+    Plugg Wash       diff vs Init   -1.4 dB, peak  -8.05 dBFS 
+    TikTok Ready     diff vs Init  -13.0 dB, peak  -4.09 dBFS 
+    Rage Roll Fill   diff vs Init   -2.6 dB, peak  -6.37 dBFS 
+    Half-Time Drop   diff vs Init   -3.8 dB, peak  -8.18 dBFS 
+    Ghost Lead       diff vs Init   -5.7 dB, peak  -7.09 dBFS 
+    808 Phone Punch  diff vs Init   -4.6 dB, peak  -2.47 dBFS 
+    Pump It          diff vs Init  -11.0 dB, peak  -4.57 dBFS 
+    Kick Duck        diff vs Init  -16.9 dB, peak  -3.40 dBFS 
+    Stutter Chop     diff vs Init   -7.3 dB, peak  -3.00 dBFS 
+    Dark Tape        diff vs Init   -3.3 dB, peak  -9.06 dBFS 
+    [PASS] every factory preset is finite, under the ceiling and audibly different from Init
+    [PASS] save writes zz Audit Test Preset.xfxpreset
+  mosh_macro: saved 0.810, after Init 0.350, after loading user preset 0.810; preview after load 0
+    [PASS] user preset restores values, preview stays off
+    [PASS] factory names can't be overwritten
+    [PASS] next/previous step through the list
+    [PASS] delete removes the user preset file
+    [PASS] preset name is stored in the project
+
+ALL PASSED (0 failures)
+
+Not covered: Mac build (CI prepared, not run), FL Studio/AU hosting, listening on real music.

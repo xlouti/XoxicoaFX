@@ -8,7 +8,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
     set(CMAKE_OSX_DEPLOYMENT_TARGET "10.13" CACHE STRING "Minimum macOS version")
 endif()
 
-project(XoxicoaFX VERSION 1.0.0 LANGUAGES C CXX)
+project(XoxicoaFX VERSION 1.2.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -95,6 +95,19 @@ if(XFX_BUILD_TESTS)
     target_compile_definitions(XoxicoaFXUISnapshot PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
     target_link_libraries(XoxicoaFXUISnapshot PRIVATE
+        juce::juce_audio_utils juce::juce_dsp
+        PUBLIC juce::juce_recommended_config_flags)
+endif()
+
+# In-process audit: Rage Stutter render checks + per-parameter sweep (development only)
+if(XFX_BUILD_TESTS)
+    juce_add_console_app(XoxicoaFXAudit PRODUCT_NAME "XoxicoaFXAudit")
+    target_sources(XoxicoaFXAudit PRIVATE
+        tests/Audit.cpp Source/PluginProcessor.cpp Source/PluginEditor.cpp)
+    target_include_directories(XoxicoaFXAudit PRIVATE Source)
+    target_compile_definitions(XoxicoaFXAudit PRIVATE
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
+    target_link_libraries(XoxicoaFXAudit PRIVATE
         juce::juce_audio_utils juce::juce_dsp
         PUBLIC juce::juce_recommended_config_flags)
 endif()
